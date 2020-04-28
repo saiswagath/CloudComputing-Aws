@@ -1,0 +1,48 @@
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@0.1.6
+
+description: |
+  Wrapper function to include installing python as well
+
+commands:
+  install:
+    description: |
+      Install the aws cli and python
+
+    steps:
+      - run:
+          name: Install python
+          command: |
+            if ! [ -x "$(which python3)" ]; then
+              sudo apt-get install python3
+            fi
+            if ! [ -x "$(which pip3)" ]; then
+              sudo apt-get install python3-pip
+            fi
+      - aws-cli/install
+
+jobs:
+  validate:
+    docker:
+      - image: hashicorp/packer:1.1.1
+    working_directory: ~/packer
+    steps:
+      - checkout
+      - run: echo "checking my aws cli version"
+      - run: echo aws --version
+      - run:
+          name: Validate file
+          command: packer validate ubuntu-ami.json
+      - run:
+          name: build
+          command: packer build ubuntu-ami.json
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - validate:
+          filters:
+            branches:
+              only: master

@@ -1,0 +1,72 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:11-jdk
+    steps:
+      - checkout
+      - run:
+          name: Install packages
+          command: sudo rm -rf /var/lib/apt/lists/* && sudo apt-get update && sudo apt-get install wget zip unzip -y
+
+      - run:
+          name: Install curl
+          command: |
+            sudo apt-get install curl
+            sudo curl --version
+
+      - run:
+          name: AWS-CLI installation
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+            sudo apt-get update
+            sudo apt-get install less -y
+            aws --version
+
+      - run: mvn dependency:go-offline
+
+      - run:
+          name: unit test
+          command: mvn package
+
+      - run:
+          name: Artifact build
+          command: |
+            pwd
+            ls -al
+            mvn clean install
+            cd target/
+            ls -al
+            echo "path check"
+            pwd
+            cd ../../..
+            echo "After changing direcory"
+            pwd
+      - run:
+          name: Artifact Zip
+          command: |
+            echo "current build number is ${CIRCLE_BUILD_NUM}"
+            mkdir -p artifact
+            cd artifact
+            ls -al
+            touch 777 lambdaop.txt
+
+      - run:
+          name: Upload artifact S3 bucket
+          command: |
+            pwd
+            aws s3 cp /home/circleci/project/target/EmailLambda.jar s3://${BUCKET_NAME} --region us-east-1
+      - run:
+          name: updating the fucntion
+          command: |
+            aws lambda update-function-code --function-name  EmailLambda  --s3-bucket ${BUCKET_NAME} --s3-key EmailLambda.jar --region us-east-1 > lambdaop.txt
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: master

@@ -1,0 +1,112 @@
+---
+version: 2 # use CircleCI 2.0
+jobs: # a collection of steps
+  pr_check: # runs not using Workflows must have a `build` job as entry point test
+
+    working_directory: ~/webapp # directory where steps will run
+
+    docker: # run the steps with Docker
+        - image: circleci/openjdk:11-jdk # ...with this image as the primary container; this is where all `steps` will run
+      - image: circleci/mysql:5.7.28
+        environment:
+          - MYSQL_ROOT_PASSWORD=ubuntu
+          - MYSQL_USER=admin
+          - MYSQL_PASSWORD=test1234
+          - MYSQL_DATABASE=cloud
+
+    steps: # a collection of executable commands
+
+      - checkout # check out source code to working directory
+
+      - run: mvn dependency:go-offline # gets the project dependencies
+
+      - run: mvn package # run the actual tests
+
+  build: # runs not using Workflows must have a `build` job as entry point of app
+
+    working_directory: ~/webapp # directory where steps will run
+
+    docker: # run the steps with Docker
+      - image: circleci/openjdk:11-jdk # ...with this image as the primary container; this is where all `steps` will run
+      - image: circleci/mysql:5.7.28
+        environment:
+          - MYSQL_ROOT_PASSWORD=ubuntu
+          - MYSQL_USER=admin
+          - MYSQL_PASSWORD=test1234
+          - MYSQL_DATABASE=cloud
+
+    steps: # a collection of executable commands
+
+      - checkout # check out source code to working directory.
+
+      - run: # install aws-cli
+          name: Install packages
+          command: sudo rm -rf /var/lib/apt/lists/* && sudo apt-get update && sudo apt-get install wget zip unzip -y
+
+      - run:
+          name: Install curl
+          command: |
+            sudo apt-get install curl
+            sudo curl --version
+
+      - run:
+          name: Install AWS-CLI
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+            aws --version
+            sudo apt-get install less -y
+
+      - run: mvn dependency:go-offline # gets the project dependencies
+
+      - run:
+          name: Run unit test
+          command: mvn package # run the actual tests
+
+      - run:
+          name: Build Artifact
+          command: |
+            pwd
+            ls -al
+            mvn clean install -Plocal
+            cd target/
+            ls -al
+            cd ../../..
+
+      - run:
+          name: Zip Artifact
+          command: |
+            echo "Hello the current build number is ${CIRCLE_BUILD_NUM}"
+            echo "*** my aws version ****"
+            mkdir -p artifact
+            zip -r csye6225-web-app-${CIRCLE_BUILD_NUM}.zip /home/circleci/webapp/target/demo-0.0.1-SNAPSHOT.war codedeploy/*.sh cloudwatch/*.json appspec.yml
+            mv csye6225-web-app-${CIRCLE_BUILD_NUM}.zip artifact
+            cd artifact
+            ls -al
+
+      - run:
+          name: Upload to S3 bucket
+          command: |
+            aws s3 sync artifact s3://${BUCKET_NAME}
+
+      - run:
+          name: Make a call to Code Deploy
+          command: |
+            echo "Hello CodeDeploy test"
+            aws deploy create-deployment --application-name csye6225-webapp \
+                          --deployment-config-name CodeDeployDefault.AllAtOnce \
+                          --deployment-group-name csye6225-webapp-deployment \
+                          --description "CSYE6255 - CodeDeploy" \
+                          --s3-location bucket=${BUCKET_NAME},key=csye6225-web-app-${CIRCLE_BUILD_NUM}.zip,bundleType=zip \
+                          --region us-east-1 \
+                          --output json
+
+workflows:
+  version: 2
+  pr-check-workflow:
+    jobs:
+      - pr_check
+  build-deploy-workflow:
+    jobs:
+      - build

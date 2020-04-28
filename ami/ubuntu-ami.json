@@ -1,0 +1,43 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_region": "{{env `AWS_REGION`}}",
+    "subnet_id": "",
+    "source_ami": "{{env `AWS_SOURCE_AMI`}}",
+    "ssh_username": "{{env `AWS_SSH_USERNAME`}}",
+    "ami_users": "{{env `AWS_AMI_USERS`}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "ami_users": "{{ user `ami_users` }}",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "region": "{{user `aws_region`}}",
+      "instance_type": "t2.micro",
+      "subnet_id": "{{user `subnet_id`}}",
+      "source_ami": "{{user `source_ami`}}",
+      "ssh_username": "{{user `ssh_username`}}",
+      "ami_name": "csye6225_{{timestamp}}",
+      "ami_description": "Ubuntu AMI for CSYE 6225 - Spring 2020",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "volume_size": 8,
+          "volume_type": "gp2",
+          "delete_on_termination": true
+        }
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "environment_vars": [
+        "FOO=foo"
+      ],
+      "script":"install_ami_provisioners.sh"
+    }
+  ]
+}
