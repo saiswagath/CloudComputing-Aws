@@ -25,7 +25,7 @@
     <tbody>
         <tr>
             <td>Web Application</td>
-            <td>Java, MySQL, Hibernate ORM,Shell Scripts, AWS-SDK, ES6</td>
+            <td>Java, MySQL, Hibernate ORM,Shell Scripts, AWS-SDK</td>
         </tr>
         <tr>
             <td>Infrastructure</td>
