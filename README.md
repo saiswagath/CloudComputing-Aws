@@ -111,13 +111,9 @@ External Libraries used:
 1. UUID - for generating id fields
 2. Bcrypt - for hashing out the passwords
 3. basic-auth - Authentication module 
-4. tsscmp - comparing the values
-5. Sequelize - ORM for Javascript
-6. dotenv - to process the environment variables
-7. mysql - dialect for sequelize 
-8. mocha - for integration testing in java
-9. fs - for file saving and removing file from server
-10. express-fileupload - for file upload purpose
+4. Hibernate - ORM for Java
+5. mysql - dialect for hibernate
+6. mockito - for integration testing in java
 
 __Build & Deployment__
 The application runs on AWS Cloud EC2 instance and is deployed via CircleCI pipe-line.
